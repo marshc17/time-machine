@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 
 namespace TimeMachine
@@ -9,14 +10,14 @@ namespace TimeMachine
         private Stack<ReversibleCommand> undoHistory = new Stack<ReversibleCommand>();
         private Stack<ReversibleCommand> redoHistory = new Stack<ReversibleCommand>();
 
-        public bool StateChangedSinceLastMarked { get; private set; } = false;
+        public event HistoryStateChangedEventHandler OnStateChanged;
 
         public void ExecuteCommand(ReversibleCommand command)
         {
             command.ExecuteReversibly();
-            StateChangedSinceLastMarked = true;
             redoHistory.Clear();
             undoHistory.Push(command);
+            ReportStateChanged();
         }
 
         public void Undo()
@@ -28,8 +29,8 @@ namespace TimeMachine
 
             var commandToUndo = undoHistory.Pop();
             commandToUndo.Reverse();
-            StateChangedSinceLastMarked = true;
             redoHistory.Push(commandToUndo);
+            ReportStateChanged();
         }
 
         public void Redo()
@@ -41,20 +42,26 @@ namespace TimeMachine
 
             var commandToRedo = redoHistory.Pop();
             commandToRedo.ExecuteReversibly();
-            StateChangedSinceLastMarked = true;
             undoHistory.Push(commandToRedo);
+            ReportStateChanged();
         }
 
         public void ClearHistory()
         {
             undoHistory.Clear();
             redoHistory.Clear();
-            StateChangedSinceLastMarked = false;
+            ReportStateChanged();
         }
 
-        public void MarkCurrentState()
+        private void ReportStateChanged()
         {
-            StateChangedSinceLastMarked = false;
+            var eventArgs = new HistoryStateChangedEventArgs
+            {
+                CanUndo = undoHistory.Count > 0,
+                CanRedo = redoHistory.Count > 0
+            };
+
+            OnStateChanged?.Invoke(this, eventArgs);
         }
     }
 }
