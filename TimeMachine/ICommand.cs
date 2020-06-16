@@ -7,6 +7,5 @@ namespace TimeMachine
     public interface ICommand : ICloneable
     {
         void Execute();
-        //ICommand Clone();
     }
 }
