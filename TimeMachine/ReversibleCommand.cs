@@ -21,7 +21,5 @@ namespace TimeMachine
         public abstract void ExecuteReversibly();
 
         public abstract void Reverse();
-
-        public abstract object Clone();
     }
 }

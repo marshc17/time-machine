@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Text;
 
 namespace TimeMachine
@@ -10,14 +11,18 @@ namespace TimeMachine
         private Stack<ReversibleCommand> undoHistory = new Stack<ReversibleCommand>();
         private Stack<ReversibleCommand> redoHistory = new Stack<ReversibleCommand>();
 
-        public event HistoryStateChangedEventHandler OnStateChanged;
+        public bool CanUndo { get { return undoHistory.Any(); } }
+
+        public bool CanRedo { get { return redoHistory.Any(); } }
+
+        public event EventHandler OnStateChanged;
 
         public void ExecuteCommand(ReversibleCommand command)
         {
             command.ExecuteReversibly();
             redoHistory.Clear();
             undoHistory.Push(command);
-            ReportStateChanged();
+            OnStateChanged?.Invoke(this, null);
         }
 
         public void Undo()
@@ -30,7 +35,7 @@ namespace TimeMachine
             var commandToUndo = undoHistory.Pop();
             commandToUndo.Reverse();
             redoHistory.Push(commandToUndo);
-            ReportStateChanged();
+            OnStateChanged?.Invoke(this, null);
         }
 
         public void Redo()
@@ -43,25 +48,14 @@ namespace TimeMachine
             var commandToRedo = redoHistory.Pop();
             commandToRedo.ExecuteReversibly();
             undoHistory.Push(commandToRedo);
-            ReportStateChanged();
+            OnStateChanged?.Invoke(this, null);
         }
 
         public void ClearHistory()
         {
             undoHistory.Clear();
             redoHistory.Clear();
-            ReportStateChanged();
-        }
-
-        private void ReportStateChanged()
-        {
-            var eventArgs = new HistoryStateChangedEventArgs
-            {
-                CanUndo = undoHistory.Count > 0,
-                CanRedo = redoHistory.Count > 0
-            };
-
-            OnStateChanged?.Invoke(this, eventArgs);
+            OnStateChanged?.Invoke(this, null);
         }
     }
 }
